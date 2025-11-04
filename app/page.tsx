@@ -1,65 +1,169 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState, useEffect } from 'react';
+import AdminLayout from './components/AdminLayout';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+} from 'recharts';
+
+interface MonthlySignup {
+  month: string;
+  count: number;
+}
+
+interface DashboardStats {
+  totalUsers: number;
+  activeUsers: number;
+  todayVisitors: number;
+  totalRevenue: number;
+}
+
+export default function Dashboard() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [monthlySignups, setMonthlySignups] = useState<MonthlySignup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/dashboard/stats');
+        const result = await response.json();
+
+        if (result.success) {
+          setStats(result.data.stats);
+          setMonthlySignups(result.data.monthlySignups);
+        } else {
+          setError(result.error || '데이터를 불러오는데 실패했습니다.');
+        }
+      } catch (err) {
+        setError('데이터를 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-500">로딩 중...</p>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (error || !stats) {
+    return (
+      <AdminLayout>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">{error || '데이터를 불러올 수 없습니다.'}</p>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  const statsData = [
+    { label: '전체 사용자', value: stats.totalUsers.toLocaleString(), change: '+12%' },
+    { label: '활성 사용자', value: stats.activeUsers.toLocaleString(), change: '+5%' },
+    { label: '오늘 방문자', value: stats.todayVisitors.toLocaleString(), change: '+8%' },
+    { label: '총 수익', value: `₩${stats.totalRevenue.toLocaleString()}`, change: '+15%' },
+  ];
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <AdminLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">대시보드</h1>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {statsData.map((stat) => (
+            <div
+              key={stat.label}
+              className="bg-white rounded-lg shadow-md p-6 border border-gray-200"
+            >
+              <p className="text-sm text-gray-600 mb-2">{stat.label}</p>
+              <p className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</p>
+              <p className="text-sm text-green-600">{stat.change}</p>
+            </div>
+          ))}
         </div>
-      </main>
-    </div>
+
+        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">월별 사용자 가입수</h2>
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={monthlySignups} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis
+                dataKey="month"
+                stroke="#6b7280"
+                style={{ fontSize: '12px' }}
+              />
+              <YAxis
+                stroke="#6b7280"
+                style={{ fontSize: '12px' }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#fff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  padding: '12px',
+                }}
+                labelStyle={{ color: '#374151', fontWeight: 'bold' }}
+              />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="count"
+                name="가입수"
+                stroke="#3b82f6"
+                strokeWidth={3}
+                dot={{ fill: '#3b82f6', r: 5 }}
+                activeDot={{ r: 8 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+    
+
+        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">최근 활동</h2>
+          <div className="space-y-3">
+            {[
+              { user: '홍길동', action: '새 계정 생성', time: '5분 전' },
+              { user: '김철수', action: '정보 수정', time: '10분 전' },
+              { user: '이영희', action: '로그인', time: '15분 전' },
+            ].map((activity, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+              >
+                <div>
+                  <span className="font-medium text-gray-900">{activity.user}</span>
+                  <span className="text-gray-600 ml-2">{activity.action}</span>
+                </div>
+                <span className="text-sm text-gray-500">{activity.time}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </AdminLayout>
   );
 }
